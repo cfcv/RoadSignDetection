@@ -1,20 +1,12 @@
-close all; clear all;
-
-[img_30, d30, l30] = sift(imread('reduce_30.bmp'));
-
-for i  = 1:41
-    s= strcat('data/data/',int2str(i),'.ppm' );
-    rgbImage=imread(s);
-    
+[boxes] = function findPanneaux(rgbImage)
+    boxes = [];
     rgbImage=rgbImage(1:floor(size(rgbImage,1)*0.75),:, :);
-    figure(); imshow(rgbImage, []); %title(int2str(i));
     
-    %Get the grayscale image
+    %figure(); imshow(rgbImage, []); %title(int2str(i));
     imGray = rgb2gray(rgbImage);
     [L,C] = size(imGray);
     %imwrite(rgbImage,strcat('data/data/',int2str(1),'.png' ))
     
-    %Normalization
     %NORMALIZED = comprehensive_colour_normalization(rgbImage);
     NORMALIZED = RGBNormalize(rgbImage);
     %figure(); imshow(NORMALIZED, []); title('NORMALIZED');
@@ -26,7 +18,6 @@ for i  = 1:41
     
     %Puis on va définir les seuilles pour la couleur rouge
     %trying to make adaptatif thresholding
-    %Segmentation
     filter = ones(3, 3)/9;
     conv_result = conv2(filter, hImage);
     RMeanTreshold = 0.63;
@@ -65,7 +56,6 @@ for i  = 1:41
     filled = bwareaopen(filled, 455);
     %figure(); imshow(filled, []); title(strcat('filled', int2str(i)));
     
-    %Finding the bounding boxes
     st=regionprops(filled,'BoundingBox', 'Area');
     for k=1:length(st)
         BB=st(k).BoundingBox;
@@ -81,7 +71,6 @@ for i  = 1:41
             %figure();
             %imshow(img_to_process, []);
 
-            %Finding the pannels
             [centers, radii] = imfindcircles(img_to_process, [5 60], 'Sensitivity', 0.9);
             [m,n] = size(centers);
    
@@ -112,16 +101,14 @@ for i  = 1:41
                     %length(l)
                     %norm(d30(:, :) - d(:, :))
                     if(length(l) > 30)
+                        newBox = [];
+                        boxes = [boxes newBox];
                         rectangle('Position', [centers(z, 1), centers(z,2), floor(slice_xx - centers(z,1)), floor(slice_yy - centers(z,2))], 'EdgeColor', 'r' ,'LineWidth',2);
                         %figure();
                         %imshow(imGray(centers(z,2):slice_yy, centers(z,1):slice_xx), []);
                         %pause(2);
                     end
                 end
-                %pause(1);
             end
         end
     end
-    pause(2);
-     close all;
-end

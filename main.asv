@@ -1,12 +1,21 @@
 close all; clear all;
 
-%for i  = 1:41
-    s= strcat('data/data/',int2str(1),'.ppm' );
+%%
+[img_30, d30, l30] = sift(imread('reduce_30.bmp'));
+length(l30)
+figure();
+imshow(img_30); title('image 1'); hold on
+plot(l30(:,2),l30(:,1),'+g');
+%%
+for i  = 1:41
+    s= strcat('data/data/',int2str(i),'.ppm' );
     rgbImage=imread(s);
- 
-    rgbImage=rgbImage(1:floor(size(rgbImage,1)*0.75),:, :);
     
-    imwrite(rgbImage,strcat('data/data/',int2str(1),'.png' ))
+    rgbImage=rgbImage(1:floor(size(rgbImage,1)*0.75),:, :);
+    figure(); imshow(rgbImage, []); title(int2str(i));
+    imGray = rgb2gray(rgbImage);
+    [L,C] = size(imGray);
+    %imwrite(rgbImage,strcat('data/data/',int2str(1),'.png' ))
     
     %canny = edge(rgb2gray(rgbImage));
     %figure(); imshow(canny, []); title('canny');
@@ -15,7 +24,7 @@ close all; clear all;
     
     %NORMALIZED = comprehensive_colour_normalization(rgbImage);
     NORMALIZED = RGBNormalize(rgbImage);
-    figure(); imshow(NORMALIZED, []); title('NORMALIZED');
+    %figure(); imshow(NORMALIZED, []); title('NORMALIZED');
     %sn= strcat('data/data/normalized',int2str(i),'.ppm' );
     %imwrite(NORMALIZED, sn);
 
@@ -72,9 +81,9 @@ close all; clear all;
 %     coloredObjectsMask = uint8(hMask & sMask & vMask);
     coloredObjectMask = Mask;
     image_bw = bwareaopen(coloredObjectMask, 200);
-     figure(); imshow(bwareaopen(image_bw, 1500));title('fond');
+    %figure(); imshow(bwareaopen(image_bw, 1500));title('fond');
     titre = strcat('seg', int2str(i));
-    figure(); imshow(image_bw);title(titre);
+    %figure(); imshow(image_bw);title(titre);
     s=strel('disk',1);
     image_bw=imerode(image_bw,s);
     %figure(); imshow(image_bw);title('erosion');
@@ -96,7 +105,7 @@ close all; clear all;
     filled = imopen(filled, s2);%?
     %figure(); imshow(filled, []); title(strcat('open', int2str(i)));
     filled = bwareaopen(filled, 455);
-    %figure(); imshow(filled, []); title(strcat('areaopen', int2str(i)));
+    %figure(); imshow(filled, []); title(strcat('filled', int2str(i)));
     
     st=regionprops(filled,'BoundingBox', 'Area');
     for k=1:length(st)
@@ -106,7 +115,55 @@ close all; clear all;
         %condition 3: eliminer les regions trop alonger à la vertical tout
         %en avant une taille petite en x.
         if(st(k).Area>181) && (BB(3)/BB(4) <= 1.6) && (BB(3)/BB(4) >= 0.35)
-            rectangle('Position', [BB(1), BB(2), BB(3), BB(4)], 'EdgeColor', 'r' ,'LineWidth',2);
+            %rectangle('Position', [BB(1), BB(2), BB(3), BB(4)], 'EdgeColor', 'r' ,'LineWidth',2);
+            slice_y = floor(BB(2)+BB(4));%uint8(BB(2)+BB(4));
+            slice_x = floor(BB(1)+BB(3));%uint8(BB(1)+BB(3));
+            img_to_process = imGray(BB(2):slice_y, BB(1):slice_x);
+            %figure();
+            %imshow(img_to_process, []);
+            %pause(1);
+            [centers, radii] = imfindcircles(img_to_process, [5 60], 'Sensitivity', 0.9);
+            [m,n] = size(centers);
+            %centersStrong5 = centers(1:5,:); 
+            %radiiStrong5 = radii(1:5);
+            %rectangle('Position', [BB(1), BB(2), BB(3), BB(4)], 'EdgeColor', 'r' ,'LineWidth',2);
+            if(~isempty(centers)) 
+                rectangle('Position', [BB(1), BB(2), BB(3), BB(4)], 'EdgeColor', 'r' ,'LineWidth',2);
+                %figure();
+                %imshow(img_to_process);
+                centers(:, 1) = centers(:, 1) + BB(1);
+                centers(:, 2) = centers(:, 2) + BB(2);
+                viscircles(centers, radii,'EdgeColor','b');
+                centers(:, 1) = centers(:, 1) - radii(:)-10;
+                centers(:, 2) = centers(:, 2) - radii(:)-10;
+             
+                for z=1:m
+                    if(radii(z) < 25)
+                        slice_xx = floor(centers(z, 1) + 4*radii(z));
+                        slice_yy = floor(centers(z, 2) + 4*radii(z));
+                    else
+                        slice_xx = floor(centers(z, 1) + 3*radii(z));
+                        slice_yy = floor(centers(z, 2) + 3*radii(z));
+                    end
+                    %mean2(filled(centers(z,2):slice_yy, centers(z,1):slice_xx))
+                    if(slice_xx > C || slice_yy > L || centers(z, 1) <= 0 || centers(z,2) <= 0 || mean2(filled(centers(z,2):slice_yy, centers(z,1):slice_xx)) < 0.4)
+                        continue
+                    end
+                    
+                    pause(1);
+                    [img, d, l] = sift(imGray(centers(z,2):slice_yy, centers(z,1):slice_xx));
+                    length(l)
+                    %norm(d30(:, :) - d(:, :))
+                    if(length(l) > 30)
+                    
+                        figure();
+                        imshow(imGray(centers(z,2):slice_yy, centers(z,1):slice_xx), []);
+                    %pause(2);
+                    end
+                    %rectangle('Position', [centers(z, 1), centers(z, 2), 3*radii(z), 3*radii(z)], 'EdgeColor', 'y', 'LineWidth', 2);
+                end
+                %pause(1);
+            end
         end
     end
     pause(3);
@@ -123,6 +180,6 @@ close all; clear all;
      %s=strel('disk',1);
     %image_bw_split=imdilate(image_bw_split,s);
      %figure(); imshow(image_bw_split);title('g');
-    % pause(1);
-     %close all;
-%end
+     pause(2);
+     close all;
+end

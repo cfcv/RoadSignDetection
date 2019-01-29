@@ -1,20 +1,15 @@
-close all; clear all;
-
-[img_30, d30, l30] = sift(imread('reduce_30.bmp'));
-
-for i  = 1:41
-    s= strcat('data/data/',int2str(i),'.ppm' );
-    rgbImage=imread(s);
-    
+function [boxes] = findPanneaux(rgbImage)
+    boxes = [];
     rgbImage=rgbImage(1:floor(size(rgbImage,1)*0.75),:, :);
-    figure(); imshow(rgbImage, []); %title(int2str(i));
     
-    %Get the grayscale image
+    %figure(); imshow(rgbImage, []); %title(int2str(i));
+    
+    %Getting the grayscale image
     imGray = rgb2gray(rgbImage);
     [L,C] = size(imGray);
     %imwrite(rgbImage,strcat('data/data/',int2str(1),'.png' ))
     
-    %Normalization
+    %Normalization step
     %NORMALIZED = comprehensive_colour_normalization(rgbImage);
     NORMALIZED = RGBNormalize(rgbImage);
     %figure(); imshow(NORMALIZED, []); title('NORMALIZED');
@@ -26,7 +21,7 @@ for i  = 1:41
     
     %Puis on va définir les seuilles pour la couleur rouge
     %trying to make adaptatif thresholding
-    %Segmentation
+    %Segmentation Step
     filter = ones(3, 3)/9;
     conv_result = conv2(filter, hImage);
     RMeanTreshold = 0.63;
@@ -112,16 +107,15 @@ for i  = 1:41
                     %length(l)
                     %norm(d30(:, :) - d(:, :))
                     if(length(l) > 30)
-                        rectangle('Position', [centers(z, 1), centers(z,2), floor(slice_xx - centers(z,1)), floor(slice_yy - centers(z,2))], 'EdgeColor', 'r' ,'LineWidth',2);
+                        newBox = [centers(z, 1), centers(z,2), floor(slice_xx - centers(z,1)), floor(slice_yy - centers(z,2))];
+                        boxes = [boxes newBox];
+                        %rectangle('Position', [centers(z, 1), centers(z,2), floor(slice_xx - centers(z,1)), floor(slice_yy - centers(z,2))], 'EdgeColor', 'r' ,'LineWidth',2);
                         %figure();
                         %imshow(imGray(centers(z,2):slice_yy, centers(z,1):slice_xx), []);
                         %pause(2);
                     end
                 end
-                %pause(1);
             end
         end
     end
-    pause(2);
-     close all;
 end
